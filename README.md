@@ -1,7 +1,5 @@
 # Backend microservices for SledAway
 
-Account management microservice for passengers and drivers.
-
 ## Summary of microservices
 
 ### accountManagement
