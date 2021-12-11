@@ -191,10 +191,6 @@ type UpdatePassengerInfo struct {
 	Email     string `json:"email"`
 }
 
-type UpdatePassengerResponse struct {
-	Id int64 `json:"id"`
-}
-
 func updatePassenger(w http.ResponseWriter, r *http.Request) {
 	var info CreatePassengerInfo
 	if ensureJson(w, r, &info) != nil {
@@ -208,7 +204,7 @@ func updatePassenger(w http.ResponseWriter, r *http.Request) {
 		WHERE u.id = ?`)
 	if err != nil {
 		writeError(w, r, "DB err 1")
-		log.Println("getPassenger: Error in prepare" + err.Error())
+		log.Println("updatePassenger: Error in prepare" + err.Error())
 		return
 	}
 
@@ -297,6 +293,94 @@ func createDriver(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type GetDriverResponse struct {
+	Id               int64  `json:"id"`
+	FirstName        string `json:"firstName"`
+	LastName         string `json:"lastName"`
+	MobileNo         string `json:"mobileNo"`
+	Email            string `json:"email"`
+	IdentificationNo string `json:"identificationNo"`
+	CarNo            string `json:"carNo"`
+}
+
+func getDriver(w http.ResponseWriter, r *http.Request) {
+	var resp GetDriverResponse
+	reqId := mux.Vars(r)["id"]
+
+	stmt, err := db.Prepare(`SELECT
+		id, firstName, lastName, mobileNo, email, identificationNo, carNo
+		FROM driver d INNER JOIN user u on d.userId = u.id
+		WHERE d.userId = ?`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		log.Println("getDriver: Error in prepare" + err.Error())
+		return
+	}
+
+	err = stmt.QueryRow(reqId).Scan(
+		&resp.Id, &resp.FirstName, &resp.LastName,
+		&resp.MobileNo, &resp.Email, &resp.IdentificationNo,
+		&resp.CarNo,
+	)
+	if err != nil {
+		writeError(w, r, "Id not found: "+reqId)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(resp)
+}
+
+type UpdateDriverInfo struct {
+	FirstName        string `json:"firstName"`
+	LastName         string `json:"lastName"`
+	MobileNo         string `json:"mobileNo"`
+	Email            string `json:"email"`
+	IdentificationNo string `json:"identificationNo"`
+	CarNo            string `json:"carNo"`
+}
+
+func updateDriver(w http.ResponseWriter, r *http.Request) {
+	var info UpdateDriverInfo
+	if ensureJson(w, r, &info) != nil {
+		return
+	}
+
+	reqId := mux.Vars(r)["id"]
+
+	stmt, err := db.Prepare(`UPDATE user u INNER JOIN driver d ON u.id = d.userId
+		SET firstName = ?, lastName = ?, mobileNo = ?, email = ?, identificationNo = ?, carNo = ?
+		WHERE u.id = ?`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		log.Println("updateDriver: Error in prepare" + err.Error())
+		return
+	}
+
+	res, err := stmt.Exec(
+		info.FirstName, info.LastName, info.MobileNo,
+		info.Email, info.IdentificationNo, info.CarNo,
+		reqId,
+	)
+	if err != nil {
+		writeError(w, r, "DB err 2")
+		return
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		writeError(w, r, "DB err 3")
+		return
+	}
+
+	// Check if any rows were updated
+	if count == 0 {
+		writeError(w, r, "No records were updated")
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+}
+
 // --------------
 // Main endpoint registry
 // --------------
@@ -316,7 +400,7 @@ func registerEndpoints(db1 *sql.DB) *mux.Router {
 
 	router.HandleFunc("/api/v1/drivers", createDriver).Methods("POST")
 	router.HandleFunc("/api/v1/drivers/{id}", getDriver).Methods("GET")
-	// router.HandleFunc("/api/v1/drivers/{id}", updateDriver).Methods("PUT")
+	router.HandleFunc("/api/v1/drivers/{id}", updateDriver).Methods("PUT")
 
 	return router
 }
