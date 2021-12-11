@@ -15,28 +15,6 @@ import (
 var db *sql.DB
 
 // --------------
-// Type mappings to the record in the db table
-// --------------
-
-type DBPassenger struct {
-	Id        int
-	FirstName string
-	LastName  string
-	MobileNo  string
-	Email     string
-}
-
-type DBDriver struct {
-	Id               int
-	FirstName        string
-	LastName         string
-	MobileNo         string
-	Email            string
-	IdentificationNo string
-	CarNo            string
-}
-
-// --------------
 // Structures and common function
 // --------------
 
