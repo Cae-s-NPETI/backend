@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,8 @@ import (
 )
 
 var db *sql.DB
+
+const tripHistoryApiUrl = "http://localhost:21802"
 
 // --------------
 // Structures and common function
@@ -242,7 +245,7 @@ func endTrip(w http.ResponseWriter, r *http.Request) {
 	var tripHist TripHistoryInfo
 
 	stmt, err := db.Prepare(`
-		SELECT id, postalCode, passengerId, driverId
+		SELECT id, postalCode, passengerId, driverId, startTime
 		FROM ongoing_trip
 		WHERE id = ?
 	`)
@@ -253,6 +256,7 @@ func endTrip(w http.ResponseWriter, r *http.Request) {
 	err = stmt.QueryRow(tripReqId).Scan(
 		&tripHist.Id, &tripHist.PostalCode,
 		&tripHist.PassengerId, &tripHist.DriverId,
+		&tripHist.StartTime,
 	)
 	if err != nil {
 		writeError(w, r, "Trip not found: "+tripReqId)
@@ -293,9 +297,20 @@ func endTrip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO:
-	// 3. Call tripHistory to archive trip
+	// 3.2 Call tripHistory to archive trip
+	jsonValue, _ := json.Marshal(tripHist)
 
+	request, err := http.NewRequest(http.MethodPost,
+		tripHistoryApiUrl+"/api/v1/tripsLog", bytes.NewBuffer(jsonValue))
+
+	request.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	_, err = client.Do(request)
+
+	if err != nil {
+		writeError(w, r, "Could not save trip log: "+err.Error())
+	}
 }
 
 // --------------
