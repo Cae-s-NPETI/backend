@@ -217,21 +217,85 @@ type EndTripInfo struct {
 	DriverId int64 `json:"driverId"`
 }
 
+// Describes the structure of a trip history record
+type TripHistoryInfo struct {
+	Id          int64
+	PostalCode  string
+	PassengerId int64
+	DriverId    int64
+	StartTime   int64
+	EndTime     int64
+}
+
 // 1. Sets driver available
 // 2. Rmv ongoing_trip record
 // 3. Call tripHistory to archive trip
 func endTrip(w http.ResponseWriter, r *http.Request) {
-	//tripReqId := mux.Vars(r)["id"]
+	tripReqId := mux.Vars(r)["id"]
 
 	var info EndTripInfo
 	if ensureJson(w, r, &info) != nil {
 		return
 	}
 
-	log.Println(info)
+	// 3.1. Save info
+	var tripHist TripHistoryInfo
 
-	// TODO
-	w.WriteHeader(http.StatusNotImplemented)
+	stmt, err := db.Prepare(`
+		SELECT id, postalCode, passengerId, driverId
+		FROM ongoing_trip
+		WHERE id = ?
+	`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		return
+	}
+	err = stmt.QueryRow(tripReqId).Scan(
+		&tripHist.Id, &tripHist.PostalCode,
+		&tripHist.PassengerId, &tripHist.DriverId,
+	)
+	if err != nil {
+		writeError(w, r, "Trip not found: "+tripReqId)
+		return
+	}
+
+	// 1. Sets driver available
+	stmt, err = db.Prepare(`
+		INSERT INTO
+		available_driver (driverId)
+		VALUES (?)
+		ON DUPLICATE KEY UPDATE
+	`)
+	if err != nil {
+		writeError(w, r, "DB err 2")
+		return
+	}
+	_, err = stmt.Exec(info.DriverId)
+	if err != nil {
+		writeError(w, r, "DB err 3")
+		log.Println("endTrip: Error in exec" + err.Error())
+		return
+	}
+
+	// 2. Rmv ongoing_trip record
+	stmt, err = db.Prepare(`
+		DELETE FROM ongoing_trip
+		WHERE id = ?
+	`)
+	if err != nil {
+		writeError(w, r, "DB err 3")
+		return
+	}
+	_, err = stmt.Exec(tripReqId)
+	if err != nil {
+		writeError(w, r, "DB err 4")
+		log.Println("endTrip: Error in exec" + err.Error())
+		return
+	}
+
+	// TODO:
+	// 3. Call tripHistory to archive trip
+
 }
 
 // --------------

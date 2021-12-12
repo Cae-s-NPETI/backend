@@ -1,4 +1,4 @@
-module sledaway/tripmanagement/v1
+module sledaway/triphistory/v1
 
 go 1.17
 

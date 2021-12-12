@@ -16,7 +16,7 @@
 | ---- | ---- |
 | **Description** | Trip history microservice for logging and retrieving of passenger trips. |
 | **REST Port** | 21802 |
-| **Database name** | etia1triphistory |
+| **Database name** | etia1tripmanagement |
 
 ### tripManagement
 
