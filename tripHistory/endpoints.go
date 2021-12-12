@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -68,27 +70,88 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 // --------------
 
-// Describes the structure of a trip history add request, which almost directly
-// correspond to the actual DB table structure
+// Describes the structure of a trip history add & get request, which almost
+// directly correspond to the actual DB table structure
 type TripHistoryInfo struct {
 	Id          int64  `json:"id"`
 	PostalCode  string `json:"postalCode"`
-	PassengerId int64  `json:passengerId"`
+	PassengerId int64  `json:"passengerId"`
 	DriverId    int64  `json:"driverId"`
 	StartTime   int64  `json:"startTime"`
 	EndTime     int64  `json:"endTime"`
 }
 
-// 1. Sets driver available
-// 2. Rmv ongoing_trip record
-// 3. Call tripHistory to archive trip
-func getPasssengerTrips(w http.ResponseWriter, r *http.Request) {
-	//reqPassengerId := mux.Vars(r)["passengerId"]
+type GetPasssengerTripsResponse struct {
+	Trips []TripHistoryInfo `json:"trips"`
+}
 
+func getPasssengerTrips(w http.ResponseWriter, r *http.Request) {
+	reqPassengerId := mux.Vars(r)["passengerId"]
+
+	stmt, err := db.Prepare(`SELECT
+		id, postalCode, passengerId, driverId, startTime, endTIme
+		FROM trip_history
+		WHERE passengerId = ?
+		ORDER BY startTime DESC`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		return
+	}
+	rows, err := stmt.Query(reqPassengerId)
+	if err != nil {
+		writeError(w, r, "DB err 2")
+		return
+	}
+
+	// Save a list of trips made, latest startTime first
+	var resp GetPasssengerTripsResponse
+	for rows.Next() {
+		var info TripHistoryInfo
+		err = rows.Scan(
+			&info.Id, &info.PostalCode, &info.PassengerId,
+			&info.DriverId, &info.StartTime, &info.EndTime,
+		)
+		if err != nil {
+			writeError(w, r, "DB err 3")
+			return
+		}
+		resp.Trips = append(resp.Trips, info)
+	}
+
+	json.NewEncoder(w).Encode(resp)
+
+}
+
+type AddTripResponse struct {
+	EndTime int64 `json:"endTime"`
+}
+
+func addTripLog(w http.ResponseWriter, r *http.Request) {
 	var info TripHistoryInfo
 	if ensureJson(w, r, &info) != nil {
 		return
 	}
+
+	timestamp := time.Now().Unix()
+
+	stmt, err := db.Prepare(`INSERT INTO trip_history
+		(id, postalCode, passengerId, driverId, startTime, endTIme)
+		VALUES (?, ?, ?, ?, ?, ?)`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		return
+	}
+	_, err = stmt.Exec(info.Id, info.PostalCode, info.PassengerId,
+		info.DriverId, info.StartTime, timestamp)
+	if err != nil {
+		writeError(w, r, "DB err 2")
+		log.Println("addTripLog: Error in exec" + err.Error())
+		return
+	}
+
+	json.NewEncoder(w).Encode(AddTripResponse{
+		EndTime: timestamp,
+	})
 
 }
 
