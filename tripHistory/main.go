@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/handlers"
 )
 
 const PORT = 21802
@@ -21,8 +22,12 @@ func main() {
 		log.Println("Database opened")
 	}
 
+	header := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS"})
+	origins := handlers.AllowedOrigins([]string{"*"})
+
 	log.Printf("Listening at http://localhost:%v", PORT)
-	err = http.ListenAndServe(fmt.Sprintf("localhost:%v", PORT), registerEndpoints(db))
+	err = http.ListenAndServe(fmt.Sprintf("localhost:%v", PORT), handlers.CORS(header, methods, origins)(registerEndpoints(db)))
 
 	// Shouldn't get here
 	db.Close()
