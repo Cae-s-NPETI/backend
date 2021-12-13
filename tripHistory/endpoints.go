@@ -104,7 +104,9 @@ func getPasssengerTrips(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save a list of trips made, latest startTime first
-	var resp GetPasssengerTripsResponse
+	resp := GetPasssengerTripsResponse{
+		Trips: []TripHistoryInfo{},
+	}
 	for rows.Next() {
 		var info TripHistoryInfo
 		err = rows.Scan(
