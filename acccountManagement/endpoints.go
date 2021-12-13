@@ -214,6 +214,11 @@ func updatePassenger(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func deletePassenger(w http.ResponseWriter, r *http.Request) {
+	_ = mux.Vars(r)["id"]
+	writeErrorStatus(w, r, "You cannot delete your account.", http.StatusForbidden)
+}
+
 // --------------
 
 type CreateDriverInfo struct {
@@ -364,6 +369,11 @@ func updateDriver(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func deleteDriver(w http.ResponseWriter, r *http.Request) {
+	_ = mux.Vars(r)["id"]
+	writeErrorStatus(w, r, "You cannot delete your account.", http.StatusForbidden)
+}
+
 // --------------
 // Main endpoint registry
 // --------------
@@ -380,10 +390,12 @@ func registerEndpoints(db1 *sql.DB) *mux.Router {
 	router.HandleFunc("/api/v1/passengers", createPassenger).Methods("POST")
 	router.HandleFunc("/api/v1/passengers/{id}", getPassenger).Methods("GET")
 	router.HandleFunc("/api/v1/passengers/{id}", updatePassenger).Methods("PUT")
+	router.HandleFunc("/api/v1/passengers/{id}", deletePassenger).Methods("DELETE")
 
 	router.HandleFunc("/api/v1/drivers", createDriver).Methods("POST")
 	router.HandleFunc("/api/v1/drivers/{id}", getDriver).Methods("GET")
 	router.HandleFunc("/api/v1/drivers/{id}", updateDriver).Methods("PUT")
+	router.HandleFunc("/api/v1/drivers/{id}", deleteDriver).Methods("DELETE")
 
 	return router
 }
