@@ -103,12 +103,14 @@ func createTrip(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(info)
 
-	// Get random available driver
+	// Get random available driver, that is NOT currently in an ongoing trip
 	var driverId int64
 	err := db.QueryRow(`
-		SELECT driverId FROM available_driver
+		SELECT ad.driverId FROM available_driver ad
+		LEFT JOIN ongoing_trip ot ON ad.driverId = ot.driverId
+		WHERE ot.driverId IS NULL
 		ORDER BY RAND()
-		LIMIT 1
+		LIMIT 1;
 	`).Scan(&driverId)
 	if err != nil {
 		writeErrorStatus(w, r, "No available driver for your trip.", http.StatusNotFound)
@@ -168,25 +170,8 @@ func acceptTrip(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(info)
 
-	// Delete driver from available
-	stmt, err := db.Prepare(`
-		DELETE FROM available_driver
-		WHERE driverId = ?
-	`)
-	if err != nil {
-		writeError(w, r, "DB err 1")
-		return
-	}
-
-	res, err := stmt.Exec(info.DriverId)
-	if err != nil {
-		writeError(w, r, "DB err 2")
-		log.Println("acceptTrip: Error in exec" + err.Error())
-		return
-	}
-
 	// Update start time in ongoing_trip table
-	stmt, err = db.Prepare(`
+	stmt, err := db.Prepare(`
 		UPDATE ongoing_trip
 		SET startTime = ?
 		WHERE id = ?
@@ -197,7 +182,7 @@ func acceptTrip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timestamp := time.Now().Unix()
-	res, err = stmt.Exec(timestamp, tripReqId)
+	res, err := stmt.Exec(timestamp, tripReqId)
 	if err != nil {
 		writeError(w, r, "DB err 2")
 		log.Println("createTrip: Error in exec" + err.Error())
@@ -238,7 +223,6 @@ type TripHistoryInfo struct {
 	EndTime     int64
 }
 
-// 1. Sets driver available
 // 2. Rmv ongoing_trip record
 // 3. Call tripHistory to archive trip
 func endTrip(w http.ResponseWriter, r *http.Request) {
@@ -268,24 +252,6 @@ func endTrip(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		writeError(w, r, "Trip not found: "+tripReqId)
-		return
-	}
-
-	// 1. Sets driver available
-	stmt, err = db.Prepare(`
-		INSERT INTO
-		available_driver (driverId)
-		VALUES (?)
-		ON DUPLICATE KEY UPDATE
-	`)
-	if err != nil {
-		writeError(w, r, "DB err 2")
-		return
-	}
-	_, err = stmt.Exec(info.DriverId)
-	if err != nil {
-		writeError(w, r, "DB err 3")
-		log.Println("endTrip: Error in exec" + err.Error())
 		return
 	}
 
@@ -404,6 +370,49 @@ func setAvailableDriver(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getAvailableDriver(w http.ResponseWriter, r *http.Request) {
+	reqId := mux.Vars(r)["id"]
+
+	// Check if driver found
+	stmt, err := db.Prepare(`
+		SELECT driverId FROM available_driver
+		WHERE driverId = ?
+	`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		return
+	}
+
+	var driverId int64
+	err = stmt.QueryRow(reqId).Scan(&driverId)
+	if err != nil {
+		// driver not found
+		writeErrorStatus(w, r, "Driver is not available.", http.StatusNotFound)
+		return
+	}
+}
+
+func deleteAvailableDriver(w http.ResponseWriter, r *http.Request) {
+	reqId := mux.Vars(r)["id"]
+
+	// Check if driver found
+	stmt, err := db.Prepare(`
+		DELETE FROM available_driver
+		WHERE driverId = ?
+	`)
+	if err != nil {
+		writeError(w, r, "DB err 1")
+		return
+	}
+
+	_, err = stmt.Exec(reqId)
+	if err != nil {
+		writeError(w, r, "DB err 2")
+		log.Println("deleteAvailableDriver: Error in exec" + err.Error())
+		return
+	}
+}
+
 // --------------
 // Main endpoint registry
 // --------------
@@ -424,10 +433,14 @@ func registerEndpoints(db1 *sql.DB) *mux.Router {
 	// Ends a trip
 	router.HandleFunc("/api/v1/trips/{id}", endTrip).Methods("DELETE")
 
-	// Gets assigned trip for the driver
-	router.HandleFunc("/api/v1/driver/{id}", getDriverTrip).Methods("GET")
 	// Sets driver as available
 	router.HandleFunc("/api/v1/driver", setAvailableDriver).Methods("POST")
+	// Gets whether the driver is available
+	router.HandleFunc("/api/v1/driver/{id}", getAvailableDriver).Methods("GET")
+	// Gets assigned trip for the driver
+	router.HandleFunc("/api/v1/driver/{id}/trip", getDriverTrip).Methods("GET")
+	// Removes driver from available
+	router.HandleFunc("/api/v1/driver/{id}", deleteAvailableDriver).Methods("DELETE")
 
 	return router
 }
