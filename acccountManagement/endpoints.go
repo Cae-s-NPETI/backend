@@ -34,6 +34,16 @@ func writeError(w http.ResponseWriter, r *http.Request, description string) {
 	})
 }
 
+// Writes a regular JSON error response, with a status code
+func writeErrorStatus(w http.ResponseWriter, r *http.Request, description string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(RegularResponse{
+		Status:      false,
+		Description: description,
+	})
+}
+
 // Ensures that the request is a json and converts it
 func ensureJson(w http.ResponseWriter, r *http.Request, v interface{}) error {
 	if r.Header.Get("Content-type") != "application/json" {
@@ -154,8 +164,7 @@ func getPassenger(w http.ResponseWriter, r *http.Request) {
 
 	err = stmt.QueryRow(reqId).Scan(&resp.Id, &resp.FirstName, &resp.LastName, &resp.MobileNo, &resp.Email)
 	if err != nil {
-		writeError(w, r, "Id not found: "+reqId)
-		w.WriteHeader(http.StatusNotFound)
+		writeErrorStatus(w, r, "Id not found: "+reqId, http.StatusNotFound)
 		return
 	}
 
@@ -201,7 +210,6 @@ func updatePassenger(w http.ResponseWriter, r *http.Request) {
 	// Check if any rows were updated
 	if count == 0 {
 		writeError(w, r, "No records were updated")
-		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 }
@@ -301,8 +309,7 @@ func getDriver(w http.ResponseWriter, r *http.Request) {
 		&resp.CarNo,
 	)
 	if err != nil {
-		writeError(w, r, "Id not found: "+reqId)
-		w.WriteHeader(http.StatusNotFound)
+		writeErrorStatus(w, r, "Id not found: "+reqId, http.StatusNotFound)
 		return
 	}
 
@@ -353,7 +360,6 @@ func updateDriver(w http.ResponseWriter, r *http.Request) {
 	// Check if any rows were updated
 	if count == 0 {
 		writeError(w, r, "No records were updated")
-		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 }
