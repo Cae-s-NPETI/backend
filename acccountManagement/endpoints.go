@@ -310,12 +310,11 @@ func getDriver(w http.ResponseWriter, r *http.Request) {
 }
 
 type UpdateDriverInfo struct {
-	FirstName        string `json:"firstName"`
-	LastName         string `json:"lastName"`
-	MobileNo         string `json:"mobileNo"`
-	Email            string `json:"email"`
-	IdentificationNo string `json:"identificationNo"`
-	CarNo            string `json:"carNo"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	MobileNo  string `json:"mobileNo"`
+	Email     string `json:"email"`
+	CarNo     string `json:"carNo"`
 }
 
 func updateDriver(w http.ResponseWriter, r *http.Request) {
@@ -327,7 +326,7 @@ func updateDriver(w http.ResponseWriter, r *http.Request) {
 	reqId := mux.Vars(r)["id"]
 
 	stmt, err := db.Prepare(`UPDATE user u INNER JOIN driver d ON u.id = d.userId
-		SET firstName = ?, lastName = ?, mobileNo = ?, email = ?, identificationNo = ?, carNo = ?
+		SET firstName = ?, lastName = ?, mobileNo = ?, email = ?, carNo = ?
 		WHERE u.id = ?`)
 	if err != nil {
 		writeError(w, r, "DB err 1")
@@ -337,7 +336,7 @@ func updateDriver(w http.ResponseWriter, r *http.Request) {
 
 	res, err := stmt.Exec(
 		info.FirstName, info.LastName, info.MobileNo,
-		info.Email, info.IdentificationNo, info.CarNo,
+		info.Email, info.CarNo,
 		reqId,
 	)
 	if err != nil {
