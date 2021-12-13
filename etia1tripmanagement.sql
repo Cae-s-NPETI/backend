@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 13, 2021 at 02:47 AM
+-- Generation Time: Dec 13, 2021 at 02:08 PM
 -- Server version: 10.4.21-MariaDB
 -- PHP Version: 8.0.11
 
@@ -42,7 +42,7 @@ CREATE TABLE `ongoing_trip` (
   `postalCode` varchar(127) NOT NULL,
   `passengerId` int(11) NOT NULL,
   `driverId` int(11) NOT NULL,
-  `startTime` timestamp NULL DEFAULT NULL COMMENT 'The time that the driver started this trip'
+  `startTime` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -56,8 +56,8 @@ CREATE TABLE `trip_history` (
   `postalCode` varchar(127) NOT NULL,
   `passengerId` int(11) NOT NULL,
   `driverId` int(11) NOT NULL,
-  `startTime` timestamp NOT NULL DEFAULT current_timestamp(),
-  `endTIme` timestamp NOT NULL DEFAULT current_timestamp()
+  `startTime` bigint(20) NOT NULL,
+  `endTIme` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --

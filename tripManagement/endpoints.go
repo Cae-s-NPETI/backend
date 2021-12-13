@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -92,7 +93,8 @@ type CreateTripInfo struct {
 }
 
 type CreateTripResponse struct {
-	Id int64 `json:"id"`
+	Id       int64 `json:"id"`
+	DriverId int64 `json:"driverId"`
 }
 
 func createTrip(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +115,7 @@ func createTrip(w http.ResponseWriter, r *http.Request) {
 		LIMIT 1;
 	`).Scan(&driverId)
 	if err != nil {
-		writeErrorStatus(w, r, "No available driver for your trip.", http.StatusNotFound)
+		writeErrorStatus(w, r, "No available driver for your trip. Please try again.", http.StatusNotFound)
 		return
 	}
 
@@ -143,7 +145,8 @@ func createTrip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(CreateTripResponse{
-		Id: id,
+		Id:       id,
+		DriverId: driverId,
 	})
 }
 
@@ -197,7 +200,7 @@ func acceptTrip(w http.ResponseWriter, r *http.Request) {
 
 	// Check if any rows were updated
 	if count == 0 {
-		writeError(w, r, "No records were updated")
+		writeError(w, r, "No records were updated"+strconv.Itoa(int(timestamp)))
 		return
 	}
 
@@ -336,13 +339,12 @@ func setAvailableDriver(w http.ResponseWriter, r *http.Request) {
 
 	stmt, err := db.Prepare(`
 		SELECT driverId FROM available_driver
-		WHERE driverId != ?
+		WHERE driverId = ?
 	`)
 	if err != nil {
 		writeError(w, r, "DB err 1")
 		return
 	}
-
 	var driverId int64
 	err = stmt.QueryRow(info.DriverId).Scan(&driverId)
 	if err == nil {
