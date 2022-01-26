@@ -1,0 +1,30 @@
+services:
+  db:
+    image: mariadb
+    volumes:
+      - ./sql_init:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS:?database password not set}
+      MYSQL_DATABASE: edufi_marks_xchg
+    ports:
+      - 3306:3306
+
+  accountManagement:
+    image: caengnp/etia1_accountmanagement
+    ports:
+      - 21801:21801
+
+  tripHistory:
+    image: caengnp/etia1_triphistory
+    ports:
+      - 21802:21802
+
+  tripManagement:
+    image: caengnp/etia1_tripmanagement
+    ports:
+      - 21803:21803
+
+volumes:
+  db_data:
