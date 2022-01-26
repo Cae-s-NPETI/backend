@@ -28,15 +28,18 @@ Repeat the same step for all microservices. If you use the [frontend](https://gi
 | **Description** | Account management microservice for passengers and drivers. |
 | **REST Port** | 21801 |
 | **Database name** | etia1account |
+| **Docker image repository** | caengnp/etia1_accountmanagement |
 
 |      | tripHistory |
 | ---- | ---- |
 | **Description** | Trip history microservice for logging and retrieving of passenger trips. |
 | **REST Port** | 21802 |
 | **Database name** | etia1tripmanagement |
+| **Docker image repository** | caengnp/etia1_triphistory |
 
 |      | tripManagement |
 | ---- | ---- |
 | **Description** | Core trip management microservice. |
 | **REST Port** | 21803 |
 | **Database name** | etia1tripmanagement |
+| **Docker image repository** | caengnp/etia1_tripmanagement |

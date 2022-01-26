@@ -27,7 +27,7 @@ func main() {
 	origins := handlers.AllowedOrigins([]string{"*"})
 
 	log.Printf("Listening at http://localhost:%v", PORT)
-	err = http.ListenAndServe(fmt.Sprintf("localhost:%v", PORT), handlers.CORS(header, methods, origins)(registerEndpoints(db)))
+	err = http.ListenAndServe(fmt.Sprintf(":%v", PORT), handlers.CORS(header, methods, origins)(registerEndpoints(db)))
 
 	// Shouldn't get here
 	db.Close()
