@@ -27,7 +27,7 @@ Repeat the same step for all microservices. If you use the [frontend](https://gi
 
 Deploying the backend with Docker Compose is really simple. Database set up is also automatically done on the first run. Simply spin up the following command:
 ```bash
-docker=compose up -d
+docker-compose up -d
 ```
 
 ## Summary of microservices

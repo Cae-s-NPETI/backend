@@ -6,8 +6,7 @@ services:
       - db_data:/var/lib/mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS:?database password not set}
-      MYSQL_DATABASE: edufi_marks_xchg
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
     ports:
       - 3306:3306
 
